@@ -14,6 +14,10 @@ Follow these instructions to use:
    
         pip install "fastplotlib[notebook]" # make sure that caiman is activated!! (this should follow the steps above in the same terminal)
 
+4) Download this code (requires git language: https://git-scm.com/downloads)
+
+        git clone https://github.com/JohnStout/calcium_imaging
+
 If you are stuck on mamba, try this (recommendation: https://github.com/nel-lab/mesmerize-core):
 
         conda clean -a # clean up conda in case it takes a while to install mamba
