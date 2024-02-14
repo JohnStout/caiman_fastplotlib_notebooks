@@ -1,5 +1,5 @@
 # Jupyter-notebooks to analyze and visualize miniscope data with CaImAn and fastplotlib
-Heavily inspired by mesmerize-viz and doesn't come close in comparison to visuals. Here, I focused on very specific visualizations to help curate CaImAn defined components and reduce the load of parameter setting. The output of these notebooks (CNMFE and VizResults) are various files with unique ids to reference to as well as .csv files containing calcium imaging data and ROI masks/spatial footprint data.
+Heavily inspired by mesmerize-viz and doesn't come close in comparison to visuals. Here, I focused on very specific visualizations to help curate CaImAn defined components and reduce the load of parameter setting. The output of these notebooks (CNMFE and VizResults) are various files with unique ids to reference to as well as .csv files containing calcium imaging data and ROI masks/spatial footprint data. This code draws on root directories built using D. Aharoni software for miniscope https://github.com/Aharoni-Lab/Miniscope-DAQ-QT-Software.
 
 Follow these instructions to use:
 
