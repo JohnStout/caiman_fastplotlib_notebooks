@@ -31,7 +31,7 @@ These code come from the decode_lab_code package that I was working on for A. He
 Here is the organization of the folders:
 
     code
-    ├── cnmfe
+    ├── miniscope_cnmfe
     │   ├── CNMFE.ipynb: code to analyze miniscope data with CNMFE. Includes interactive plots by caiman and fastplotlib.
     │   └── VizResults.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
     └── movie_mod
