@@ -64,7 +64,7 @@ class play_cnmf_movie():
         print("self.play_movie_draw_roi(components_type='accepted') # only plots accepted")
         print("self.play_movie_draw_roi(components_type='rejected') # only plots rejected")
 
-    def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single'):
+    def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
         '''
         Args:
             >>> components_type: Tells the code which components to plot.
@@ -72,6 +72,9 @@ class play_cnmf_movie():
                             'accepted', 'rejected', 'both'
             >>> plot_type: 'single' plots a single fastplotlib plot. 'double' plots two plots
                     **Note: you can only set this to double if components_type is 'both'
+        
+        Optional Args:
+            >>> cmap: default gray, accepts any python colormap
 
         '''
 
@@ -83,13 +86,13 @@ class play_cnmf_movie():
             iw_mov_roi = fpl.ImageWidget(
                 data=self.images,#mask_array 
                 slider_dims=["t"],
-                cmap="gray"
+                cmap=cmap
             )   
         elif 'double' in plot_type:        
             iw_mov_roi = fpl.ImageWidget(
                 data=[self.images,self.images.copy()],#mask_array 
                 slider_dims=["t"],
-                cmap="gray"
+                cmap=cmap
             )   
 
         if 'both' in components_type:
@@ -109,7 +112,7 @@ class play_cnmf_movie():
 
         return iw_mov_roi
 
-    def play_gSig_draw_roi(self, components_type: str = 'both', plot_type: str = 'single'):
+    def play_gSig_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
         """
         This function creates the gSig filtered image with components overlaid
         """
@@ -141,7 +144,7 @@ class play_cnmf_movie():
                 frame_apply=funcs,
                 names=[str("gSig of " + str(self.cnmf_object.params.init['gSig'][0]) + " for CNMFE")],
                 #grid_plot_kwargs={"size": (1200, 600)},
-                cmap="gray"
+                cmap=cmap
             )
         elif 'double' in plot_type:
             iw_gs = fpl.ImageWidget(
@@ -149,7 +152,7 @@ class play_cnmf_movie():
                 frame_apply={0: apply_filter, 1: apply_filter},
                 names=[str("gSig of " + str(self.cnmf_object.params.init['gSig'][0]) + " for CNMFE"), str("gSig of " + str(self.cnmf_object.params.init['gSig'][0]) + " for CNMFE")],
                 #grid_plot_kwargs={"size": (1200, 600)},
-                cmap="gray"
+                cmap=cmap
             )           
 
         def force_update(*args):
@@ -180,17 +183,20 @@ class play_cnmf_movie():
 
         return iw_gs
 
-def play_movie(images):
+def play_movie(images, cmap = 'gray'):
     '''
     Args:
         >>> images: a 3D array (t,row,col) numpy array
+
+    Optional Args:
+        >>> cmap: accepts any python acceptable colormap
     '''
 
     # create an image with ROI overlapped
     iw_cnmf = fpl.ImageWidget(
         data=images,#mask_array 
         slider_dims=["t"],
-        cmap="gray"
+        cmap=cmap
     )
     
     return iw_cnmf
