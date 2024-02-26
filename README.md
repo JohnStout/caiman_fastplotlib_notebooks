@@ -22,6 +22,11 @@ If you are stuck on mamba, try this (recommendation: https://github.com/nel-lab/
 
         conda clean -a # clean up conda in case it takes a while to install mamba
 
+If updating the code
+
+        git reset --hard
+        git pull https://github.com/JohnStout/calcium_imaging
+
 These notebooks were created for analyzing miniscope and slice data.
 
 You'll notice these notebooks look a lot like the CaImAn demos and that is because a good bit is from them. However, I have modified various points in the code to automate things as needed. I focused on a limited parameter space to get ROI out of the calcium imaging data. Despite worrying about less parameters, you still have access to all parameters provided by caiman in a very clear way so that they can be adjusted as needed.
