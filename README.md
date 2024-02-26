@@ -42,7 +42,11 @@ Here is the organization of the folders:
     code
     ├── miniscope_cnmfe
     │   ├── CNMFE.ipynb: code to analyze miniscope data with CNMFE. Includes interactive plots by caiman and fastplotlib.
-    │   └── VizResults.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
+    │   └── VizResults_miniscope.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
+    ├── slice_cnmfe: Code to analyze slice imaging data
+    │   ├── CNMFE_4D.ipynb: Code to analyze 4D calcium imaging data (structural + functional image recorded at the same time)
+    │   ├── CNMFE_multi_plane.ipynb: Code to analyze calcium_imaging data with a structural image
+    │   └── VizResults_slice.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
     └── movie_mod
         ├── TrimMovie.ipynb: used to trim the FOV (useful if you have deadspace around a GRIN lens) or spatially downsample your data.
         └── avi_to_tif.ipynb: used to convert avi movies to tif files for TrimMovie
