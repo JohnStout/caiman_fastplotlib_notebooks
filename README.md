@@ -22,6 +22,15 @@ If you are stuck on mamba, try this (recommendation: https://github.com/nel-lab/
 
         conda clean -a # clean up conda in case it takes a while to install mamba
 
+If you are trying to update a local copy of the code to the updated version:
+
+        git pull https://github.com/JohnStout/calcium_imaging
+
+If the code isn't actually updating from the repo:
+
+        git reset --hard
+        git pull https://github.com/JohnStout/calcium_imaging
+
 These notebooks were created for analyzing miniscope and slice data.
 
 You'll notice these notebooks look a lot like the CaImAn demos and that is because a good bit is from them. However, I have modified various points in the code to automate things as needed. I focused on a limited parameter space to get ROI out of the calcium imaging data. Despite worrying about less parameters, you still have access to all parameters provided by caiman in a very clear way so that they can be adjusted as needed.
@@ -33,7 +42,11 @@ Here is the organization of the folders:
     code
     ├── miniscope_cnmfe
     │   ├── CNMFE.ipynb: code to analyze miniscope data with CNMFE. Includes interactive plots by caiman and fastplotlib.
-    │   └── VizResults.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
+    │   └── VizResults_miniscope.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
+    ├── slice_cnmfe: Code to analyze slice imaging data
+    │   ├── CNMFE_4D.ipynb: Code to analyze 4D calcium imaging data (structural + functional image recorded at the same time)
+    │   ├── CNMFE_multi_plane.ipynb: Code to analyze calcium_imaging data with a structural image
+    │   └── VizResults_slice.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
     └── movie_mod
         ├── TrimMovie.ipynb: used to trim the FOV (useful if you have deadspace around a GRIN lens) or spatially downsample your data.
         └── avi_to_tif.ipynb: used to convert avi movies to tif files for TrimMovie
