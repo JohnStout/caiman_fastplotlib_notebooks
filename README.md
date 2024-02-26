@@ -22,7 +22,11 @@ If you are stuck on mamba, try this (recommendation: https://github.com/nel-lab/
 
         conda clean -a # clean up conda in case it takes a while to install mamba
 
-If updating the code
+If you are trying to update a local copy of the code to the updated version:
+
+        git pull https://github.com/JohnStout/calcium_imaging
+
+If the code isn't actually updating from the repo:
 
         git reset --hard
         git pull https://github.com/JohnStout/calcium_imaging
