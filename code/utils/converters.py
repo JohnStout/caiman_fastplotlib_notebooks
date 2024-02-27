@@ -326,6 +326,116 @@ def nwb_to_tif(nwbpath: str):
 
     return newpath
 
+# split tif stack
+def split_tif(movie_path: str, fr: float):
+    '''
+    split_tif is useful if your file is too large to load into memory
+
+    Args:
+        >>> movie_path: string of your movie directory
+        >>> fr: frame rate of your movie
+
+    John S.
+    
+    '''
+
+    # memorymap load a file
+    images = memmap(movie_path)
+
+    # shape of movie
+    num_movies = round(images.shape[0]/1000)
+
+    # create movie names
+    fnames = []; num_samples_remaining = images.shape[0]
+
+    if num_samples_remaining < 1000:
+        assert ValueError("This code requires at least 1000 samples in the time domaing to function")
+
+    for i in range(num_movies):
+
+        # get movie names
+        fnames.append(movie_path.split('.tif')[0]+'_split'+str(i+1)+'.tif')
+
+        # create a memory mappable file
+        if num_samples_remaining > 1000:
+            # write file to disk
+            imwrite(fnames[i],images[0:1000,:,:])
+            # remove 1000 frames
+            images = images[1000::]
+        elif num_samples_remaining < 1000 and num_samples_remaining > 0:
+            imwrite(fnames[i],images[0:num_samples_remaining,:,:])
+
+        # number of samples
+        num_samples_remaining = num_samples_remaining-1000
+
+    print("Files saved as:",fnames)
+    return fnames
+
+# stacktiff allows a user to stack a ton of tiff files into one singular file
+
+# TODO: FIXXXXX
+def stack_tiff(fnames: list, downsample_factor = None):
+    """
+    This function takes a folder with a bunch of .tif images and stacks them
+
+    TODO: THIS CODE MUST BE MODIFIED TO MEMORY MAP THE FILES! >>> See mp4_to_tif
+    Otherwise, this will be a monster memory bogger
+
+    Args:
+        dir: directory containing image data to stack
+        dir_save: OPTIONAL but recommended. Directory to save stacked data.
+        downsample_factor: OPTIONAL.
+            downsample_factor = 2 spatially reduces your dataset by a factor of 2
+    """
+    assert NameError("NOT READY FOR USAGE")
+
+    # read in one image to get shape
+    im = memmap(fnames[0])
+
+    # if the size the image is 3D, then just take a sample
+    if len(im.shape) > 2:
+        im = im[0]
+
+    # get downsample factor interactively
+    if downsample_factor is not None:
+        downsample_factor = interactive_downsample(im)
+        image_shape = im[::downsample_factor,::downsample_factor].shape
+    else:
+        image_shape = im.shape
+        downsample_factor = 0
+
+    # create new directory to save data
+    root_dir = os.path.split(fnames[0])[0]# select container folder
+    new_dir = os.path.join(root_dir,'stacked_series')
+    try:
+        os.mkdir(new_dir) # make directory
+        print("Created new directory:", new_dir)
+    except:
+        print("Existing directory:", new_dir)
+
+    # get new name
+    fname = os.path.join(new_dir,'stacked_series.tif')
+
+    # create a memory mappable file
+    im = memmap(
+        fname,
+        shape=(num_files,image_shape[0],image_shape[1]),
+        dtype=np.uint16,
+        append=True
+    )
+
+    # now we will append to memory mapped file
+    print("Please wait while data is mapped to:",fname)
+    counter = 0
+    for i in pathnames:
+        if downsample_factor is None:
+            im[counter] = imread(i)
+        else:
+            im[counter] = imread(i)[::downsample_factor,::downsample_factor]
+        im.flush()
+        print("Finished with image",counter+1,"/",len(pathnames))  
+        counter += 1
+
 
 #% ___________________ #%
 
@@ -654,74 +764,8 @@ def interactive_downsample(image):
              
     return downsample_factor
 
-# stacktiff allows a user to stack a ton of tiff files into one singular file
-def stacktiff(tiff_series_path: str, downsample_factor = None):
-    """
-    This function takes a folder with a bunch of .tif images and stacks them
 
-    TODO: THIS CODE MUST BE MODIFIED TO MEMORY MAP THE FILES! >>> See mp4_to_tif
-    Otherwise, this will be a monster memory bogger
-
-    Args:
-        dir: directory containing image data to stack
-        dir_save: OPTIONAL but recommended. Directory to save stacked data.
-        downsample_factor: OPTIONAL.
-            downsample_factor = 2 spatially reduces your dataset by a factor of 2
-    """
-
-    # extract all tif data in series
-    pathnames = glob.glob(tiff_series_path+'/*.tif')
-    pathnames.sort()
-    num_files = len(pathnames)
-
-    # read in one image to get shape
-    im = imread(pathnames[0])
-
-    # if the size the image is 3D, then just take a sample
-    if len(im.shape) > 2:
-        im = im[0]
-
-    # get downsample factor interactively
-    downsample_factor = interactive_downsample(im)
-    if downsample_factor is not None:
-        image_shape = im[::downsample_factor,::downsample_factor].shape
-    else:
-        image_shape = im.shape
-
-    # create new directory to save data
-    root_dir = os.path.split(os.path.split(pathnames[0])[0])[0] # select container folder
-    new_dir = os.path.join(root_dir,'stacked_series')
-    try:
-        os.mkdir(new_dir) # make directory
-        print("Created new directory:", new_dir)
-    except:
-        print("Existing directory:", new_dir)
-
-    # get new name
-    fname = os.path.join(new_dir,'stacked_series.tif')
-
-    # create a memory mappable file
-    im = memmap(
-        fname,
-        shape=(num_files,image_shape[0],image_shape[1]),
-        dtype=np.uint16,
-        append=True
-    )
-
-    # now we will append to memory mapped file
-    print("Please wait while data is mapped to:",fname)
-    counter = 0
-    for i in pathnames:
-        if downsample_factor is None:
-            im[counter] = imread(i)
-        else:
-            im[counter] = imread(i)[::downsample_factor,::downsample_factor]
-        im.flush()
-        print("Finished with image",counter+1,"/",len(pathnames))  
-        counter += 1
-
-# TODO: This object can be deprecated
-# downsample_movie provides a class to downsample your dataset
+# this should be used on datasets with multiple stages of processing
 class modify_movie():
 
     def __init__(self, movie_path):
@@ -889,5 +933,3 @@ class modify_movie():
         imsave(fname_funct,functMovie) 
 
         return [fname_funct], [fname_struct], structMovie, functMovie 
-
- 
