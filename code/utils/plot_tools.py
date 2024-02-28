@@ -5,6 +5,8 @@ import tifffile
 import numpy as np
 from ipywidgets import IntSlider, VBox
 from caiman.motion_correction import high_pass_filter_space
+from scipy.stats import linregress
+
 """
 # data
 movie_path = r'/Users/js0403/miniscope/PFC-Neurons/122D/AAV2/3-Syn-GCaMP8f/2024_02_06/12_21_26/miniscopeDeviceName'
@@ -200,3 +202,18 @@ def play_movie(images, cmap = 'gray'):
     )
     
     return iw_cnmf
+
+def scat_data(x,y):
+
+    # polyfit
+    b, a = np.polyfit(x, y, deg=1)
+    
+    # regression line
+    reg_line = a + b * x
+    
+    # regression statistics
+    print(linregress(x, y))
+
+    return reg_line, b, a
+
+    

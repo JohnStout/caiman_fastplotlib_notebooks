@@ -5,6 +5,8 @@ import tifffile
 import numpy as np
 from ipywidgets import IntSlider, VBox
 from caiman.motion_correction import high_pass_filter_space
+from scipy.stats import linregress
+
 """
 # data
 movie_path = r'/Users/js0403/miniscope/PFC-Neurons/122D/AAV2/3-Syn-GCaMP8f/2024_02_06/12_21_26/miniscopeDeviceName'
@@ -64,7 +66,7 @@ class play_cnmf_movie():
         print("self.play_movie_draw_roi(components_type='accepted') # only plots accepted")
         print("self.play_movie_draw_roi(components_type='rejected') # only plots rejected")
 
-    def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single'):
+    def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
         '''
         Args:
             >>> components_type: Tells the code which components to plot.
@@ -72,35 +74,56 @@ class play_cnmf_movie():
                             'accepted', 'rejected', 'both'
             >>> plot_type: 'single' plots a single fastplotlib plot. 'double' plots two plots
                     **Note: you can only set this to double if components_type is 'both'
+        
+        Optional Args:
+            >>> cmap: default gray, accepts any python colormap
 
         '''
 
+        if 'both' not in components_type and plot_type is 'double':
+            plot_type = 'single'
+
         # create an image with ROI overlapped
-        iw_mov_roi = fpl.ImageWidget(
-            data=self.images,#mask_array 
-            slider_dims=["t"],
-            cmap="gray"
-        )   
+        if 'single' in plot_type:
+            iw_mov_roi = fpl.ImageWidget(
+                data=self.images,#mask_array 
+                slider_dims=["t"],
+                cmap=cmap
+            )   
+        elif 'double' in plot_type:        
+            iw_mov_roi = fpl.ImageWidget(
+                data=[self.images,self.images.copy()],#mask_array 
+                slider_dims=["t"],
+                cmap=cmap
+            )   
 
         if 'both' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_accepted,color='y')
-            self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_rejected,color='r')
+            if 'single' in plot_type:
+                self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+                self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_rejected,color='r')
 
+            elif 'double' in plot_type:
+                self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+                self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,1],idx_components=self.idx_rejected,color='r')
+
+        # Ignore the plot_type variable for this
         if 'accepted' in components_type:
             self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_accepted,color='y')
-
         if 'rejected' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_accepted,color='r')
+            self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_rejected,color='r')
 
         return iw_mov_roi
 
-    def play_gSig_draw_roi(self, components_type: str = 'both'):
+    def play_gSig_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
         """
         This function creates the gSig filtered image with components overlaid
         """
 
+        if 'both' not in components_type and plot_type is 'double':
+            plot_type = 'single'
+
         # create a slider for gSig_filt
-        slider_gsig_filt = IntSlider(value=self.cnmf_model.params.init['gSig'][0], min=1, max=33, step=1,  description="gSig_filt")
+        slider_gsig_filt = IntSlider(value=self.cnmf_object.params.init['gSig'][0], min=1, max=33, step=1,  description="gSig_filt")
 
         def apply_filter(frame):
             # read slider value
@@ -117,13 +140,22 @@ class play_cnmf_movie():
         }
 
         # input movie will be shown on left, filtered on right
-        iw_gs = fpl.ImageWidget(
-            data=self.images,
-            frame_apply=funcs,
-            names=[str("gSig of " + str(self.cnmf_model.params.init['gSig'][0]) + " for CNMFE")],
-            #grid_plot_kwargs={"size": (1200, 600)},
-            cmap="gnuplot2"
-        )
+        if 'single' in plot_type:
+            iw_gs = fpl.ImageWidget(
+                data=self.images,
+                frame_apply=funcs,
+                names=[str("gSig of " + str(self.cnmf_object.params.init['gSig'][0]) + " for CNMFE")],
+                #grid_plot_kwargs={"size": (1200, 600)},
+                cmap=cmap
+            )
+        elif 'double' in plot_type:
+            iw_gs = fpl.ImageWidget(
+                data=[self.images,self.images.copy()],
+                frame_apply={0: apply_filter, 1: apply_filter},
+                names=[str("gSig of " + str(self.cnmf_object.params.init['gSig'][0]) + " for CNMFE"), str("gSig of " + str(self.cnmf_object.params.init['gSig'][0]) + " for CNMFE")],
+                #grid_plot_kwargs={"size": (1200, 600)},
+                cmap=cmap
+            )           
 
         def force_update(*args):
             # kinda hacky but forces the images to update 
@@ -138,60 +170,50 @@ class play_cnmf_movie():
         slider_gsig_filt.observe(force_update, "value")
 
         if 'both' in components_type:
+            if 'single' in plot_type:
+                self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+                self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_rejected,color='r')
+            elif 'double' in plot_type:
+                self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+                self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,1],idx_components=self.idx_rejected,color='r')
+
+        # Ignore the plot_type variable for this
+        if 'accepted' in components_type:
             self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+        if 'rejected' in components_type:
             self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_rejected,color='r')
 
-        if 'accepted' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_accepted,color='y')
-
-        if 'rejected' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_accepted,color='r')
-
         return iw_gs
-    
-    def play_footprint_draw_roi(self, components_type: str = 'both'):   
 
-        # a video of your footprints
-        footprints = list()
-
-        # all components
-        idx_to_plot = np.sort(np.concatenate((self.idx_accepted,self.idx_rejected)))
-
-        for i in idx_to_plot:
-            # get spatial footprints
-            footprints.append(np.reshape(self.cnmf_model.estimates.A[:, i].toarray(), dims, order='F'))
-
-        # convert to numpy
-        footprint_array = np.array(footprints) 
-
-        iw_footprint = fpl.ImageWidget(
-            data=footprint_array,#mask_array 
-            slider_dims=["t"],
-            names="Footprints (t = components)",
-            cmap="gray"
-        )
-
-        if 'both' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_accepted,color='y')
-            self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_rejected,color='r')
-
-        if 'accepted' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_accepted,color='y')
-
-        if 'rejected' in components_type:
-            self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_accepted,color='r')
-
-def play_movie(images):
+def play_movie(images, cmap = 'gray'):
     '''
     Args:
         >>> images: a 3D array (t,row,col) numpy array
+
+    Optional Args:
+        >>> cmap: accepts any python acceptable colormap
     '''
 
     # create an image with ROI overlapped
     iw_cnmf = fpl.ImageWidget(
         data=images,#mask_array 
         slider_dims=["t"],
-        cmap="gray"
+        cmap=cmap
     )
     
     return iw_cnmf
+
+def scat_data(x,y):
+
+    # polyfit
+    b, a = np.polyfit(x, y, deg=1)
+    
+    # regression line
+    reg_line = a + b * x
+    
+    # regression statistics
+    print(linregress(x, y))
+
+    return reg_line, b, a
+
+    
