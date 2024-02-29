@@ -45,8 +45,13 @@ Here is the organization of the folders:
     │   └── VizResults_miniscope.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
     ├── slice_cnmfe: Code to analyze slice imaging data
     │   ├── CNMFE_4D.ipynb: Code to analyze 4D calcium imaging data (structural + functional image recorded at the same time)
-    │   ├── CNMFE_multi_plane.ipynb: Code to analyze calcium_imaging data with a structural image
-    │   └── VizResults_slice.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
+    │   ├── CNMFE_multi_plane.ipynb: Code to analyze calcium_imaging data with a structural image that was taken separately
+    │   ├── CNMFE_single_plane.ipynb: Code to analyze calcium_imaging data without a structural image (just functional data)
+    │   ├── CNMFE_singlecell_body.ipynb: Code to analyze a single cells, cell body activity with CNMFE
+    │   ├── CNMFE_singlecell_processes.ipynb: Code to extract a single cells dendrite or axonal activity. This code requires work **
+    │   ├── VizResults_slice_4D.ipynb: code to visualize results from two simultaneously recorded data types (structural and functional image)
+    │   ├── VizResults_slice_single_plane.ipynb: Code to visualize CNMFE results from a single recording type (Functional)
+    │   └── VizResults_slice_multi_plane.ipynb: Code to visualize CNMFE results from a single recording type (Functional) and overlaying single images.
     └── movie_mod
         ├── TrimMovie.ipynb: used to trim the FOV (useful if you have deadspace around a GRIN lens) or spatially downsample your data.
         └── avi_to_tif.ipynb: used to convert avi movies to tif files for TrimMovie
