@@ -58,7 +58,7 @@ Here is the organization of the folders:
     │   ├── Process_slice_images_fiji.ipynb: Code that will help preprocess slice imaging data (trimming and downsampling), prior to photobleach correction in Fiji.
     │   ├── Convert_wmv.ipynb: Converts .wmv files for the user.
     │   └── Consolidating_plots.ipynb: Code that uses the converters.py tools for quick visualization examples
-    └── movie_mod
+    └── movie_mod (should be merged with utils)
         ├── TrimMovie.ipynb: used to trim the FOV (useful if you have deadspace around a GRIN lens) or spatially downsample your data.
         └── avi_to_tif.ipynb: used to convert avi movies to tif files for TrimMovie
 
