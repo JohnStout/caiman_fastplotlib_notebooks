@@ -45,9 +45,20 @@ Here is the organization of the folders:
     │   └── VizResults_miniscope.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
     ├── slice_cnmfe: Code to analyze slice imaging data
     │   ├── CNMFE_4D.ipynb: Code to analyze 4D calcium imaging data (structural + functional image recorded at the same time)
-    │   ├── CNMFE_multi_plane.ipynb: Code to analyze calcium_imaging data with a structural image
-    │   └── VizResults_slice.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
-    └── movie_mod
+    │   ├── CNMFE_multi_plane.ipynb: Code to analyze calcium_imaging data with a structural image that was taken separately
+    │   ├── CNMFE_single_plane.ipynb: Code to analyze calcium_imaging data without a structural image (just functional data)
+    │   ├── CNMFE_singlecell_body.ipynb: Code to analyze a single cells, cell body activity with CNMFE
+    │   ├── CNMFE_singlecell_processes.ipynb: Code to extract a single cells dendrite or axonal activity. This code requires work **
+    │   ├── VizResults_slice_4D.ipynb: code to visualize results from two simultaneously recorded data types (structural and functional image)
+    │   ├── VizResults_slice_single_plane.ipynb: Code to visualize CNMFE results from a single recording type (Functional)
+    │   └── VizResults_slice_multi_plane.ipynb: Code to visualize CNMFE results from a single recording type (Functional) and overlaying single images.
+    ├── utils: 
+    │   ├── converters.py: functions that support various conversions of data. The most useful which is converters.convert_to_tif which accepts .wmv, .avi, or .mp4 and converts to .tif
+    │   ├── plot_tools.py: An object (play_cnmf_movie) that creates fastplotlib plots for one-two liner visualizations. There are also some plotting functions that could be useful here.
+    │   ├── Process_slice_images_fiji.ipynb: Code that will help preprocess slice imaging data (trimming and downsampling), prior to photobleach correction in Fiji.
+    │   ├── Convert_wmv.ipynb: Converts .wmv files for the user.
+    │   └── Consolidating_plots.ipynb: Code that uses the converters.py tools for quick visualization examples
+    └── movie_mod (should be merged with utils)
         ├── TrimMovie.ipynb: used to trim the FOV (useful if you have deadspace around a GRIN lens) or spatially downsample your data.
         └── avi_to_tif.ipynb: used to convert avi movies to tif files for TrimMovie
 
