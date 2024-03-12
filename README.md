@@ -1,5 +1,5 @@
 # Jupyter-notebooks to analyze and visualize miniscope data with CaImAn and fastplotlib
-Heavily inspired by mesmerize-viz and doesn't come close in comparison to visuals. Here, I focused on very specific visualizations to help curate CaImAn defined components and reduce the load of parameter setting. The output of these notebooks (CNMFE and VizResults) are various files with unique ids to reference to as well as .csv files containing calcium imaging data and ROI masks/spatial footprint data. This code draws on root directories built using D. Aharoni software for miniscope https://github.com/Aharoni-Lab/Miniscope-DAQ-QT-Software.
+Heavily inspired by mesmerize-viz and doesn't come close in comparison to visuals. Here, I focused on very specific visualizations to help curate CaImAn defined components and reduce the load of parameter setting. The output of these notebooks (CNMFE and VizResults) are various files with unique ids to reference to as well as .csv files containing calcium imaging data and ROI masks/spatial footprint data. 
 
 Follow these instructions to use:
 
@@ -47,7 +47,7 @@ Here is the organization of the folders:
 
     code
     ├── miniscope_cnmfe
-    │   ├── CNMFE.ipynb: code to analyze miniscope data with CNMFE. Includes interactive plots by caiman and fastplotlib.
+    │   ├── CNMFE.ipynb: code to analyze miniscope data with CNMFE. Includes interactive plots by caiman and fastplotlib. 
     │   └── VizResults_miniscope.ipynb: code to visualize results from CNMFE. Includes a ton of interactive plots!
     ├── slice_cnmfe: Code to analyze slice imaging data
     │   ├── CNMFE_4D.ipynb: Code to analyze 4D calcium imaging data (structural + functional image recorded at the same time)
@@ -67,5 +67,7 @@ Here is the organization of the folders:
     └── movie_mod (should be merged with utils)
         ├── TrimMovie.ipynb: used to trim the FOV (useful if you have deadspace around a GRIN lens) or spatially downsample your data.
         └── avi_to_tif.ipynb: used to convert avi movies to tif files for TrimMovie
+
+Miniscope code draws on paths formed using D. Aharoni software for miniscope https://github.com/Aharoni-Lab/Miniscope-DAQ-QT-Software.
 
 Please contact John Stout at john.j.stout.jr@gmail.com for questions.
