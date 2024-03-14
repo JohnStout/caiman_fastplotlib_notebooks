@@ -4,7 +4,7 @@ Heavily inspired by mesmerize-viz and doesn't come close in comparison to visual
 Follow these instructions to use:
 
         git clone https://github.com/JohnStout/caiman_fastplotlib_notebooks
-        cd suite2p_fastplotlib_notebooks
+        cd caiman_fastplotlib_notebooks
         conda env create -n <env_name> -f environment.yml
 
 If the instructions above do not work, go the long route:
