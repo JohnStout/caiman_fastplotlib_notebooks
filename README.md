@@ -22,7 +22,7 @@ If the instructions above do not work, go the long route:
 
 4) Download this code (requires git language: https://git-scm.com/downloads)
 
-        git clone https://github.com/JohnStout/calcium_imaging
+        git clone https://github.com/JohnStout/caiman_fastplotlib_notebooks
 
 If you are stuck on mamba, try this (recommendation: https://github.com/nel-lab/mesmerize-core):
 
@@ -30,12 +30,12 @@ If you are stuck on mamba, try this (recommendation: https://github.com/nel-lab/
 
 If you are trying to update a local copy of the code to the updated version:
 
-        git pull https://github.com/JohnStout/calcium_imaging
+        git pull https://github.com/JohnStout/caiman_fastplotlib_notebooks
 
 If the code isn't actually updating from the repo:
 
         git reset --hard
-        git pull https://github.com/JohnStout/calcium_imaging
+        git pull https://github.com/JohnStout/caiman_fastplotlib_notebooks
 
 These notebooks were created for analyzing miniscope and slice data.
 
