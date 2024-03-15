@@ -1,3 +1,13 @@
+'''
+This code was written to facilitate visualizations using CaImAn and fastplotlib. 
+
+It is specifically designed to work after you have run and saved the results of CNMF.
+
+John Stout 3/15/2024
+
+'''
+
+# Import packages
 import fastplotlib as fpl
 import caiman as cm
 from caiman.utils.visualization import get_contours
@@ -7,25 +17,7 @@ from ipywidgets import IntSlider, VBox
 from caiman.motion_correction import high_pass_filter_space
 from scipy.stats import linregress
 
-"""
-# data
-movie_path = r'/Users/js0403/miniscope/PFC-Neurons/122D/AAV2/3-Syn-GCaMP8f/2024_02_06/12_21_26/miniscopeDeviceName'
-cnmfe_path = r'/Users/js0403/miniscope/PFC-Neurons/122D/AAV2/3-Syn-GCaMP8f/2024_02_06/12_21_26/miniscopeDeviceName/full_movie_mod_20240207130142_cnmfe.hdf5'
-
-# CNMFE model
-cnmfe_model = cm.source_extraction.cnmf.cnmf.load_CNMF(cnmfe_path)
-print(f"Successfully loaded CNMFE model")
-
-# load motion corrected data
-Yr, dims, num_frames = cm.load_memmap(cnmfe_model.mmap_file)
-images = np.reshape(Yr.T, [num_frames] + list(dims), order='F')
-print(f"Successfully loaded data")
-cnmfe_model.estimates.evaluate_components(images, cnmfe_model.params)
-
-self=play_cnmf_movie(images=images,cnmf_object=cnmfe_model)
-"""
-
-# a class to handle the cnmf-specific movies
+# a class to handle the cnmf-specific movies using fastplotlib
 class play_cnmf_movie():
 
     def __init__(self, images = None, cnmf_object = None):
@@ -42,8 +34,8 @@ class play_cnmf_movie():
             assert KeyError("You must have run: nmfe_model.estimates.evaluate_components prior to running this code")
 
         # get coordinates
-        d1, d2 = np.shape(images[0,:,:])
-        self.coors = get_contours(self.cnmf_object.estimates.A, (d1, d2), thr=0.99)
+        self.d1, self.d2 = np.shape(images[0,:,:])
+        self.coors = get_contours(self.cnmf_object.estimates.A, (self.d1, self.d2), thr=0.99)
         self.idx_accepted = self.cnmf_object.estimates.idx_components # redundant line to backtrack on
         self.idx_rejected = self.cnmf_object.estimates.idx_components_bad
 
@@ -184,6 +176,59 @@ class play_cnmf_movie():
             self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_rejected,color='r')
 
         return iw_gs
+
+    def play_spatial_footprint(self, components_type: str = 'both', cmap='gray'):
+        '''
+        Args:
+            >>> components_type: Tells the code which components to plot.
+                    Allows the following as input: 
+                            'accepted', 'rejected', 'both'
+            >>> plot_type: 'single' plots a single fastplotlib plot. 'double' plots two plots
+                    **Note: you can only set this to double if components_type is 'both'
+        
+        Optional Args:
+            >>> cmap: default gray, accepts any python colormap
+
+        '''
+
+        # a video of your footprints
+        footprints = list()
+
+        # get accepted and rejected footprints
+        if 'accepted' in components_type:
+            for i in self.idx_accepted:
+                # get spatial footprints
+                footprints.append(np.reshape(self.cnmf_object.estimates.A[:, i].toarray(), (self.d1,self.d2), order='F'))
+        elif 'rejected' in components_type:
+            for i in self.idx_rejected:
+                # get spatial footprints
+                footprints.append(np.reshape(self.cnmf_object.estimates.A[:, i].toarray(), (self.d1,self.d2), order='F'))
+        elif 'both' in components_type:
+            for i in range(self.cnmf_object.estimates.A.shape[1]):
+                # get spatial footprints
+                footprints.append(np.reshape(self.cnmf_object.estimates.A[:, i].toarray(), (self.d1,self.d2), order='F'))
+
+        # convert to numpy
+        footprints = np.array(footprints)
+
+        # plot
+        iw_footprint = fpl.ImageWidget(
+            data=footprints,#mask_array 
+            slider_dims=["t"],
+            names="Footprints (t = components)",
+            cmap="gray"
+        )   
+
+        # plot roi 
+        if 'accepted' in components_type:
+            self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+        elif 'rejected' in components_type:
+            self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_rejected,color='r')
+        elif 'both' in components_type:
+                self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_accepted,color='y')
+                self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_rejected,color='r')           
+
+        return iw_footprint
 
 def play_movie(images, cmap = 'gray'):
     '''
