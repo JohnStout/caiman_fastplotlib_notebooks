@@ -9,16 +9,29 @@ John Stout 3/15/2024
 
 # Import packages
 import fastplotlib as fpl
-import caiman as cm
-from caiman.utils.visualization import get_contours
 import tifffile
 import numpy as np
 from ipywidgets import IntSlider, VBox
-from caiman.motion_correction import high_pass_filter_space
 from scipy.stats import linregress
+import cv2
+import os
+
+try:
+    import caiman as cm
+    from caiman.utils.visualization import get_contours
+    print("caiman package loaded...")
+except:
+    print("CaImAn package not detected")
+
+try:
+    import suite2p
+    from pathlib import Path
+    print("suite2p package loaded...")
+except:
+    print("Suite2p not detected...")
 
 # a class to handle the cnmf-specific movies using fastplotlib
-class play_cnmf_movie():
+class play_caiman_movie():
 
     def __init__(self, images = None, cnmf_object = None):
         '''
@@ -39,6 +52,15 @@ class play_cnmf_movie():
         self.idx_accepted = self.cnmf_object.estimates.idx_components # redundant line to backtrack on
         self.idx_rejected = self.cnmf_object.estimates.idx_components_bad
 
+    def __help__(self):
+
+        print("Try the following")
+        print("self = play_cnmf_movie(images=images,cnmf_object=cnmfe_model) # instantiate object")
+        print("self.play_movie_draw_roi()                           # plot all components")
+        print("self.play_movie_draw_roi(plot_type = 'double')       # plots two separate fpl plots")
+        print("self.play_movie_draw_roi(components_type='accepted') # only plots accepted")
+        print("self.play_movie_draw_roi(components_type='rejected') # only plots rejected")
+
     def __drawroi__(self,fpl_widget_gridplot,idx_components,color):
 
         for i in idx_components:
@@ -48,15 +70,6 @@ class play_cnmf_movie():
             CoM = self.coors[i].get('CoM')
 
             fpl_widget_gridplot.add_scatter(np.array((roi.T[0,:],roi.T[1,:])).T,colors=color,alpha=10)
-
-    def __help__(self):
-
-        print("Try the following")
-        print("self = play_cnmf_movie(images=images,cnmf_object=cnmfe_model) # instantiate object")
-        print("self.play_movie_draw_roi()                           # plot all components")
-        print("self.play_movie_draw_roi(plot_type = 'double')       # plots two separate fpl plots")
-        print("self.play_movie_draw_roi(components_type='accepted') # only plots accepted")
-        print("self.play_movie_draw_roi(components_type='rejected') # only plots rejected")
 
     def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
         '''
@@ -118,11 +131,12 @@ class play_cnmf_movie():
         slider_gsig_filt = IntSlider(value=self.cnmf_object.params.init['gSig'][0], min=1, max=33, step=1,  description="gSig_filt")
 
         def apply_filter(frame):
+
             # read slider value
             gSig_filt = (slider_gsig_filt.value, slider_gsig_filt.value)
             
             # apply filter
-            return high_pass_filter_space(frame, gSig_filt)
+            return gauss_filt(frame, gSig_filt)
 
         # we can use frame_apply feature of `ImageWidget` to apply 
         # the filter before displaying frames
@@ -229,6 +243,405 @@ class play_cnmf_movie():
                 self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_rejected,color='r')           
 
         return iw_footprint
+
+# suite2p plotting
+class play_suite2p_movie():
+
+    def __init__(self, suite2p_path: str):
+        '''
+        Args:
+            >>> suite2p_path: path to suite2p output folder
+        '''
+        
+        # list directory content
+        listed_data = os.listdir(suite2p_path)
+
+        # loads in your data and automatically assigns their inputs to a variable name
+        var_names =[]; data_dict = dict()
+        for i in listed_data:
+            if '.npy' in i:
+                if 'ops' in i:
+                    globals()[i.split('.')[0]]=np.load(os.path.join(suite2p_path,i),allow_pickle=True).item()
+                    pass
+                else:
+                    globals()[i.split('.')[0]]=np.load(os.path.join(suite2p_path,i),allow_pickle=True)
+                var_names.append([i.split('.')[0]])
+        
+        for v in var_names:
+            setattr(self,v[0],eval(v[0]))
+
+        # define data_path
+        if len(self.ops['data_path'])>1 or len(self.ops['tiff_list'])>1:
+            print("This code does not support multi-file registration")
+        else:
+            data_path = os.path.join(self.ops['data_path'][0],self.ops['tiff_list'][0])
+            print(data_path)
+
+        # prep stuff
+        output_op_file = np.load(Path(self.ops['save_path']).joinpath('ops.npy'), allow_pickle=True).item()
+        output_op_file.keys() == self.ops.keys()
+        stats_file = Path(self.ops['save_path']).joinpath('stat.npy')
+        self.iscell = np.load(Path(self.ops['save_path']).joinpath('iscell.npy'), allow_pickle=True)[:, 0].astype(bool)
+        self.stats = np.load(stats_file, allow_pickle=True)
+
+        # get image object
+        self.im = suite2p.ROI.stats_dicts_to_3d_array(self.stats, Ly=self.ops['Ly'], Lx=self.ops['Lx'], label_id=True)
+        self.im[self.im == 0] = np.nan
+
+        # cell rois
+        self.cell_roi = np.nanmax(self.im[self.iscell], axis=0)
+        self.cell_roi[~np.isnan(self.cell_roi)]=20    
+
+        # get rejected components as well
+        self.cell_roi_rejected = np.nanmax(self.im[self.iscell==False], axis=0)
+        self.cell_roi_rejected[~np.isnan(self.cell_roi)]=20   
+
+        # load in the movie        
+        self.images = tifffile.memmap(data_path)
+  
+    def __help__(self):
+
+        print("Try the following")
+        print("self = play_suite2p_movie(suite2p_path = r'/your/path/to/plane0'")
+        print("self.play_movie_draw_roi()                           # plot all components")
+        print("self.play_movie_draw_roi(plot_type = 'double')       # plots two separate fpl plots")
+        print("self.play_movie_draw_roi(components_type='accepted') # only plots accepted")
+        print("self.play_movie_draw_roi(components_type='rejected') # only plots rejected")
+
+    def play_movie_plot_mask(self, components_type: str = 'accepted', plot_type='double'):
+        
+        '''
+        Args:
+            >>> components_type: whether to plot the accepted, rejected, or all components
+        
+        Conditional Args:
+            >>> plot_type: only responds if you have selected components_type = 'both'
+        
+            
+        Returns:
+            iw_movie: fastplotlib object to plot your data
+
+        '''
+
+        if 'accepted' in components_type:
+            masks = self.cell_roi
+            rgb_idx = 2 # blue color
+        elif 'rejected' in components_type:
+            masks = self.cell_roi_rejected
+            rgb_idx = 0 # red color
+        elif 'both' in components_type:
+            masks_accepted = self.cell_roi # accepted mask
+            masks_rejected = self.cell_roi_rejected # rejected mask
+            rgb_accepted_idx = 2 # color code for blue
+            rgb_rejected_idx = 0 # color code for red
+
+        if 'both' in components_type:
+
+            if 'double' in plot_type:
+
+                # fastplotlib movie
+                iw_movie = fpl.ImageWidget(
+                    data=[self.images,self.images.copy()],
+                    names=['Accepted','Rejected'],
+                    slider_dims=["t"],
+                    cmap="gray"
+                )
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_accepted_idx] = masks_accepted
+                struct_rgba[..., -1] = 10
+                iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
+                iw_movie.gridplot[0,0]
+                iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_rejected_idx] = masks_rejected
+                struct_rgba[..., -1] = 10
+                iw_movie.gridplot[0,1].add_image(struct_rgba, name='struct')
+                iw_movie.gridplot[0,1]
+                iw_movie.gridplot[0,1]["struct"].data[..., -1] = .3
+
+                iw_movie.show()
+
+            else:
+
+                # fastplotlib movie
+                iw_movie = fpl.ImageWidget(
+                    data=self.images,
+                    names=['Blue=Good | Red=Bad'],
+                    slider_dims=["t"],
+                    cmap="gray"
+                )
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_accepted_idx] = masks_accepted
+                struct_rgba[..., -1] = 20
+                iw_movie.gridplot[0,0].add_image(struct_rgba, name = 'struct')
+                iw_movie.gridplot[0,0]
+                iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_rejected_idx] = masks_rejected
+                struct_rgba[..., -1] = 10
+                iw_movie.gridplot[0,0].add_image(struct_rgba, name = 'struct2')
+                iw_movie.gridplot[0,0]
+                iw_movie.gridplot[0,0]["struct2"].data[..., -1] = .3
+
+        else:
+
+            # fastplotlib movie
+            iw_movie = fpl.ImageWidget(
+                data=self.images,
+                slider_dims=["t"],
+                cmap="gray"
+            )
+
+            # add a column to overlay functional activity on structural video
+            struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+            struct_rgba[:, :, rgb_idx] = masks
+            struct_rgba[..., -1] = 10
+            iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
+            iw_movie.gridplot[0,0]
+            iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+
+    def plot_gaussFiltMovie_plot_mask(self, components_type: str = 'accepted', plot_type = 'double'):
+        '''
+        Args:
+            >>> components_type: whether to plot the accepted, rejected, or all components
+        
+        Conditional Args:
+            >>> plot_type: only responds if you have selected components_type = 'both'
+            
+        Returns:
+            iw_movie: fastplotlib object to plot your data
+
+        '''
+
+        if 'accepted' in components_type:
+            masks = self.cell_roi
+            rgb_idx = 2 # blue color
+        elif 'rejected' in components_type:
+            masks = self.cell_roi_rejected
+            rgb_idx = 0 # red color
+        elif 'both' in components_type:
+            masks_accepted = self.cell_roi # accepted mask
+            masks_rejected = self.cell_roi_rejected # rejected mask
+            rgb_accepted_idx = 2 # color code for blue
+            rgb_rejected_idx = 0 # color code for red
+
+        # create a slider for gSig_filt
+        slider_gsig_filt = IntSlider(value=3, min=1, max=33, step=1,  description="gSig_filt")
+
+        def apply_filter(frame):
+            
+            # read slider value
+            gSig_filt = (slider_gsig_filt.value, slider_gsig_filt.value)
+            
+            # apply filter
+            return gauss_filt(frame,gSig_filt)
+
+        if 'both' in components_type:
+
+            if 'double' in plot_type:
+
+                # we can use frame_apply feature of `ImageWidget` to apply 
+                # the filter before displaying frames
+                funcs = {
+                    # data_index: function
+                    0: apply_filter,
+                    1: apply_filter  # filter shown on right plot, index 1
+                }
+
+                # fastplotlib movie
+                iw_movie = fpl.ImageWidget(
+                    data=[self.images,self.images.copy()],
+                    names=['Accepted','Rejected'],
+                    frame_apply=funcs,
+                    slider_dims=["t"],
+                    cmap="gray"
+                )
+
+                def force_update(*args):
+                    # kinda hacky but forces the images to update 
+                    # when the gSig_filt slider is moved
+                    iw_movie.current_index = iw_movie.current_index
+                    iw_movie.reset_vmin_vmax()
+
+                # reset min/max
+                iw_movie.reset_vmin_vmax()                
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_accepted_idx] = masks_accepted
+                struct_rgba[..., -1] = 10
+                iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
+                iw_movie.gridplot[0,0]
+                iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_rejected_idx] = masks_rejected
+                struct_rgba[..., -1] = 10
+                iw_movie.gridplot[0,1].add_image(struct_rgba, name='struct')
+                iw_movie.gridplot[0,1]
+                iw_movie.gridplot[0,1]["struct"].data[..., -1] = .3
+
+                slider_gsig_filt.observe(force_update, "value")
+                VBox([iw_movie.show(), slider_gsig_filt])   
+
+            else:
+
+                # we can use frame_apply feature of `ImageWidget` to apply 
+                # the filter before displaying frames
+                funcs = {
+                    # data_index: function
+                    0: apply_filter,  # filter shown on right plot, index 1
+                }
+
+                # fastplotlib movie
+                iw_movie = fpl.ImageWidget(
+                    data=self.images,
+                    frame_apply=funcs,
+                    names=['Blue=Good | Red=Bad'],
+                    slider_dims=["t"],
+                    cmap="gray"
+                )
+
+                def force_update(*args):
+                    # kinda hacky but forces the images to update 
+                    # when the gSig_filt slider is moved
+                    iw_movie.current_index = iw_movie.current_index
+                    iw_movie.reset_vmin_vmax()
+
+                # reset min/max
+                iw_movie.reset_vmin_vmax()
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_accepted_idx] = masks_accepted
+                struct_rgba[..., -1] = 20
+                iw_movie.gridplot[0,0].add_image(struct_rgba, name = 'struct')
+                iw_movie.gridplot[0,0]
+                iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+
+                # add a column to overlay functional activity on structural video
+                struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+                struct_rgba[:, :, rgb_rejected_idx] = masks_rejected
+                struct_rgba[..., -1] = 10
+                iw_movie.gridplot[0,0].add_image(struct_rgba, name = 'struct2')
+                iw_movie.gridplot[0,0]
+                iw_movie.gridplot[0,0]["struct2"].data[..., -1] = .3
+
+                # slide updater
+                slider_gsig_filt.observe(force_update, "value")
+                VBox([iw_movie.show(), slider_gsig_filt])                         
+
+        else:
+
+            # we can use frame_apply feature of `ImageWidget` to apply 
+            # the filter before displaying frames
+            funcs = {
+                # data_index: function
+                0: apply_filter  # filter shown on right plot, index 1
+            }
+
+            # fastplotlib movie
+            iw_movie = fpl.ImageWidget(
+                data=self.images,
+                frame_apply=funcs,
+                slider_dims=["t"],
+                cmap="gray"
+            )
+
+            def force_update(*args):
+                # kinda hacky but forces the images to update 
+                # when the gSig_filt slider is moved
+                iw_movie.current_index = iw_movie.current_index
+                iw_movie.reset_vmin_vmax()
+
+            # reset min/max
+            iw_movie.reset_vmin_vmax()
+
+            # add a column to overlay functional activity on structural video
+            struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+            struct_rgba[:, :, rgb_idx] = masks
+            struct_rgba[..., -1] = 10
+            iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
+            iw_movie.gridplot[0,0]
+            iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+
+            # slide updater
+            slider_gsig_filt.observe(force_update, "value")
+            VBox([iw_movie.show(), slider_gsig_filt])            
+
+    def play_spatial_footprint(self, components_type: str = 'accepted'):
+        #TODO: DOESNT WORK YET
+
+        if 'accepted' in components_type:
+            mask_list = self.im[self.iscell]
+            rgb_idx = 2 # blue color
+        elif 'rejected' in components_type:
+            mask_list = self.im[self.iscell==False]
+            rgb_idx = 0 # red color
+        elif 'both' in components_type:
+            mask_list_accepted = self.im[self.iscell] # accepted mask
+            mask_list_rejected = self.im[self.iscell==False] # rejected mask
+            rgb_accepted_idx = 2 # color code for blue
+            rgb_rejected_idx = 0 # color code for red
+
+
+        # fastplotlib movie
+        if 'both' in components_type:
+            pass
+        else:
+
+            iw_movie = fpl.ImageWidget(
+                data=mask_list,
+                names=[components_type+" footprints (t = components)"],
+                slider_dims=["t"],
+                cmap="gray"
+            )     
+
+        # plot
+        iw_footprint = fpl.ImageWidget(
+            data=footprints,#mask_array 
+            slider_dims=["t"],
+            names="Footprints (t = components)",
+            cmap="gray"
+        )      
+
+# TODO: This class will be a more broad class, taking in your movie and mask or list of ROI to plot
+class play_movie_roi():
+    pass
+
+# add this to utils
+def gauss_filt(frame, gSig_filt=(7,7)):
+    '''
+    Smooth your image
+
+    Args:
+        >>> frame: 2D image of your movie (an example frame)
+        >>> gSig_filt: tuple of smoothing factor (e.g. gSig_filt=(5,5))
+
+    Returns:
+        ex: example frame smoothed over
+    
+    This code was taken from caiman high_pass_filter_space
+
+    '''
+    ksize = tuple([(3 * i) // 2 * 2 + 1 for i in gSig_filt])
+    ker = cv2.getGaussianKernel(ksize[0], gSig_filt[0])
+    ker2D = ker.dot(ker.T)
+    nz = np.nonzero(ker2D >= ker2D[:, 0].max())
+    zz = np.nonzero(ker2D < ker2D[:, 0].max())
+    ker2D[nz] -= ker2D[nz].mean()
+    ker2D[zz] = 0
+    smoothed_frame = cv2.filter2D(np.array(frame, dtype=np.float32),-1, ker2D, borderType=cv2.BORDER_REFLECT)
+    return smoothed_frame
 
 def play_movie(images, cmap = 'gray'):
     '''
