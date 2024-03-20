@@ -71,7 +71,7 @@ class play_caiman_movie():
 
             fpl_widget_gridplot.add_scatter(np.array((roi.T[0,:],roi.T[1,:])).T,colors=color,alpha=10)
 
-    def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
+    def play_movie_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray', show_movie=True):
         '''
         Args:
             >>> components_type: Tells the code which components to plot.
@@ -117,9 +117,12 @@ class play_caiman_movie():
         if 'rejected' in components_type:
             self.__drawroi__(fpl_widget_gridplot=iw_mov_roi.gridplot[0,0],idx_components=self.idx_rejected,color='r')
 
-        return iw_mov_roi
+        if show_movie:
+            return iw_mov_roi.show()
+        else:
+            return iw_mov_roi
 
-    def play_gSig_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray'):
+    def play_gSig_draw_roi(self, components_type: str = 'both', plot_type: str = 'single', cmap='gray', show_movie=True):
         """
         This function creates the gSig filtered image with components overlaid
         """
@@ -189,9 +192,12 @@ class play_caiman_movie():
         if 'rejected' in components_type:
             self.__drawroi__(fpl_widget_gridplot=iw_gs.gridplot[0,0],idx_components=self.idx_rejected,color='r')
 
-        return iw_gs
+        if show_movie:
+            return iw_gs.show()
+        else:
+            return iw_gs
 
-    def play_spatial_footprint(self, components_type: str = 'both', cmap='gray'):
+    def play_spatial_footprint(self, components_type: str = 'both', cmap='gray', show_movie=True):
         '''
         Args:
             >>> components_type: Tells the code which components to plot.
@@ -242,7 +248,10 @@ class play_caiman_movie():
                 self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_accepted,color='y')
                 self.__drawroi__(fpl_widget_gridplot=iw_footprint.gridplot[0,0],idx_components=self.idx_rejected,color='r')           
 
-        return iw_footprint
+        if show_movie:
+            return iw_footprint.show()
+        else:
+            return iw_footprint
 
 # suite2p plotting
 class play_suite2p_movie():
@@ -302,13 +311,12 @@ class play_suite2p_movie():
     def __help__(self):
 
         print("Try the following")
-        print("self = play_suite2p_movie(suite2p_path = r'/your/path/to/plane0'")
-        print("self.play_movie_draw_roi()                           # plot all components")
-        print("self.play_movie_draw_roi(plot_type = 'double')       # plots two separate fpl plots")
-        print("self.play_movie_draw_roi(components_type='accepted') # only plots accepted")
-        print("self.play_movie_draw_roi(components_type='rejected') # only plots rejected")
+        print("self = play_suite2p_movie(suite2p_path = r'/your/path/to/plane0')")
+        print("mov = self.play_movie_plot_mask(); mov.show() # plot all components")
+        print("mov = self.play_movie_plot_mask(components_type='accepted'); mov.show() # plot only accepted components")
+        print("mov = self.plot_gaussFiltMovie_plot_mask(); mov # plot gaussian filtered components")
 
-    def play_movie_plot_mask(self, components_type: str = 'accepted', plot_type='double'):
+    def play_movie_plot_mask(self, components_type: str = 'both', plot_type='double', show_movie=True):
         
         '''
         Args:
@@ -353,7 +361,7 @@ class play_suite2p_movie():
                 struct_rgba[..., -1] = 10
                 iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
                 iw_movie.gridplot[0,0]
-                iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+                iw_movie.gridplot[0,0]["struct"].data[..., -1] = 0.3
 
                 # add a column to overlay functional activity on structural video
                 struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
@@ -361,9 +369,7 @@ class play_suite2p_movie():
                 struct_rgba[..., -1] = 10
                 iw_movie.gridplot[0,1].add_image(struct_rgba, name='struct')
                 iw_movie.gridplot[0,1]
-                iw_movie.gridplot[0,1]["struct"].data[..., -1] = .3
-
-                iw_movie.show()
+                iw_movie.gridplot[0,1]["struct"].data[..., -1] = 0.3
 
             else:
 
@@ -381,7 +387,7 @@ class play_suite2p_movie():
                 struct_rgba[..., -1] = 20
                 iw_movie.gridplot[0,0].add_image(struct_rgba, name = 'struct')
                 iw_movie.gridplot[0,0]
-                iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+                iw_movie.gridplot[0,0]["struct"].data[..., -1] = 0.3
 
                 # add a column to overlay functional activity on structural video
                 struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
@@ -389,7 +395,7 @@ class play_suite2p_movie():
                 struct_rgba[..., -1] = 10
                 iw_movie.gridplot[0,0].add_image(struct_rgba, name = 'struct2')
                 iw_movie.gridplot[0,0]
-                iw_movie.gridplot[0,0]["struct2"].data[..., -1] = .3
+                iw_movie.gridplot[0,0]["struct2"].data[..., -1] = 0.3
 
         else:
 
@@ -406,9 +412,14 @@ class play_suite2p_movie():
             struct_rgba[..., -1] = 10
             iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
             iw_movie.gridplot[0,0]
-            iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+            iw_movie.gridplot[0,0]["struct"].data[..., -1] = 0.3
 
-    def plot_gaussFiltMovie_plot_mask(self, components_type: str = 'accepted', plot_type = 'double'):
+        if show_movie:
+            return iw_movie.show()
+        else:
+            return iw_movie
+
+    def plot_gaussFiltMovie_plot_mask(self, components_type: str = 'both', plot_type = 'double', show_movie=True):
         '''
         Args:
             >>> components_type: whether to plot the accepted, rejected, or all components
@@ -418,6 +429,10 @@ class play_suite2p_movie():
             
         Returns:
             iw_movie: fastplotlib object to plot your data
+            slider_gsig_filt: slider object
+        
+        Try:
+            VBox([iw_movie.show(),slider_gsig_filt])
 
         '''
 
@@ -491,7 +506,7 @@ class play_suite2p_movie():
                 iw_movie.gridplot[0,1]["struct"].data[..., -1] = .3
 
                 slider_gsig_filt.observe(force_update, "value")
-                VBox([iw_movie.show(), slider_gsig_filt])   
+                #VBox([iw_movie.show(), slider_gsig_filt])   
 
             else:
 
@@ -538,7 +553,7 @@ class play_suite2p_movie():
 
                 # slide updater
                 slider_gsig_filt.observe(force_update, "value")
-                VBox([iw_movie.show(), slider_gsig_filt])                         
+                #VBox([iw_movie.show(), slider_gsig_filt])                         
 
         else:
 
@@ -576,10 +591,22 @@ class play_suite2p_movie():
 
             # slide updater
             slider_gsig_filt.observe(force_update, "value")
-            VBox([iw_movie.show(), slider_gsig_filt])            
+            #VBox([iw_movie.show(), slider_gsig_filt])     
 
-    def play_spatial_footprint(self, components_type: str = 'accepted'):
-        #TODO: DOESNT WORK YET
+        if show_movie:
+            return VBox([iw_movie.show(), slider_gsig_filt]) 
+        else:
+            return iw_movie, slider_gsig_filt
+
+    def play_spatial_footprint(self, components_type: str = 'both', show_movie=True):
+
+        '''
+        plays the spatial footprint of your data with whether the data was an accepted (blue) or rejected (red) component
+
+        Args:
+            >>> components_type: 'both', 'accepted', or 'rejected'
+        
+        '''
 
         if 'accepted' in components_type:
             mask_list = self.im[self.iscell]
@@ -588,15 +615,32 @@ class play_suite2p_movie():
             mask_list = self.im[self.iscell==False]
             rgb_idx = 0 # red color
         elif 'both' in components_type:
-            mask_list_accepted = self.im[self.iscell] # accepted mask
-            mask_list_rejected = self.im[self.iscell==False] # rejected mask
+            mask_list=self.im
             rgb_accepted_idx = 2 # color code for blue
             rgb_rejected_idx = 0 # color code for red
 
+        # replace nan with 0
+        for i in range(len(mask_list)):
+            mask_list[i][np.where(np.isnan(mask_list[i]))]=0 
 
         # fastplotlib movie
         if 'both' in components_type:
-            pass
+
+            iw_movie = fpl.ImageWidget(
+                data=mask_list,
+                names=[components_type+" footprints (t = components)"],
+                slider_dims=["t"],
+                cmap="gray"
+            )     
+
+            for i in range(len(mask_list)):
+                idx_plot = np.where(mask_list[i]>0) # find values > 0 (contours)
+                np_plot = np.vstack((idx_plot[1],idx_plot[0])).T.astype(float) # convert to float and stack data for plotting
+                if self.iscell[i]==True:
+                    iw_movie.gridplot[0,0].add_scatter(np_plot,colors='b',alpha=0.3)  
+                else:
+                    iw_movie.gridplot[0,0].add_scatter(np_plot,colors='r',alpha=0.3)  
+
         else:
 
             iw_movie = fpl.ImageWidget(
@@ -606,18 +650,77 @@ class play_suite2p_movie():
                 cmap="gray"
             )     
 
-        # plot
-        iw_footprint = fpl.ImageWidget(
-            data=footprints,#mask_array 
-            slider_dims=["t"],
-            names="Footprints (t = components)",
-            cmap="gray"
-        )      
+            for i in mask_list:
+                idx_plot = np.where(i>0)
+                np_plot = np.vstack((idx_plot[1],idx_plot[0])).T.astype(float)
+                if 'rejected' in components_type:
+                    iw_movie.gridplot[0,0].add_scatter(np_plot,colors='r',alpha=1)
+                else:
+                    iw_movie.gridplot[0,0].add_scatter(np_plot,colors='b',alpha=1)
 
-# TODO: This class will be a more broad class, taking in your movie and mask or list of ROI to plot
+        if show_movie:
+            return iw_movie.show()
+        else:
+            return iw_movie
+
+# A simpler class to more broadly plot components
 class play_movie_roi():
-    pass
+    def __init__(self, movie_path: str, mask: list):
+        '''
+        This code is agnostic to accepted or rejected components.
 
+        You will need a mask (np.ndarray) to represent your accepted or rejected components.
+
+        Args:
+            >>> movie_path: path to your .tif file
+            >>> mask: a matrix with nan or 0 values occupying elements without components, and 1.0s as your components
+
+        '''
+    
+        # memory map read the frames from your movie
+        self.images = tifffile.memmap(movie_path)
+
+        # if you've provided a 3D array with separate masks per component
+        if len(mask.shape) > 2:
+            self.mask = np.nanmax(mask, axis=0)
+            self.mask_list = mask
+        else:
+            self.mask = mask
+
+    def play_movie_plot_mask(self, color='b', show_movie=True):
+        '''
+        Args:
+            color: accepts 'r','g', or 'b'
+            show_movie: default to True. If set to False, you just have to .show() the result
+        '''
+
+        if 'b' in color:
+            rgb_idx = 2 # blue color
+        elif 'r' in color:
+            rgb_idx = 0
+        elif 'g' in color:
+            rgb_idx = 1
+            
+        # fastplotlib movie
+        iw_movie = fpl.ImageWidget(
+            data=self.images,
+            slider_dims=["t"],
+            cmap="gray"
+        )
+
+        # add a column to overlay functional activity on structural video
+        struct_rgba = np.zeros((self.images.shape[1], self.images.shape[2], 4), dtype=np.float32)
+        struct_rgba[:, :, rgb_idx] = self.mask
+        struct_rgba[..., -1] = 10
+        iw_movie.gridplot[0,0].add_image(struct_rgba, name='struct')
+        iw_movie.gridplot[0,0]
+        iw_movie.gridplot[0,0]["struct"].data[..., -1] = .3
+        
+        if show_movie:
+            return iw_movie.show()
+        else:
+            return iw_movie
+    
 # add this to utils
 def gauss_filt(frame, gSig_filt=(7,7)):
     '''
@@ -643,14 +746,26 @@ def gauss_filt(frame, gSig_filt=(7,7)):
     smoothed_frame = cv2.filter2D(np.array(frame, dtype=np.float32),-1, ker2D, borderType=cv2.BORDER_REFLECT)
     return smoothed_frame
 
-def play_movie(images, cmap = 'gray'):
+def play_movie(movie_path=None,images=None, cmap = 'gray', show_movie=True):
     '''
-    Args:
+    Plays the recorded movie as a fastplotlib object. 
+
+    Recommended to define your movie path, rather than feeding the images to the function.
+
+    movie_path option triggers a memory mapped reading of the data to support visualization of files that cannot fit into RAM
+
+    Args (only define movie_path OR images)
+        >>> movie_path: path to movie that you want to watch
         >>> images: a 3D array (t,row,col) numpy array
 
     Optional Args:
         >>> cmap: accepts any python acceptable colormap
     '''
+
+    if 'movie_path' is not None and 'images' is not None:
+        images = tifffile.memmap(movie_path)
+    elif 'movie_path' is not None and 'images' is None:
+        images = tifffile.memmap(movie_path)
 
     # create an image with ROI overlapped
     iw_cnmf = fpl.ImageWidget(
@@ -659,7 +774,10 @@ def play_movie(images, cmap = 'gray'):
         cmap=cmap
     )
     
-    return iw_cnmf
+    if show_movie:
+        return iw_cnmf.show()
+    else:
+        return iw_cnmf
 
 def scat_data(x,y):
 
