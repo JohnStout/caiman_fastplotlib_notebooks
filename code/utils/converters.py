@@ -25,6 +25,13 @@ except:
     print("CaImAn toolbox not loaded. Add to environment if running calcium imaging analysis")
     pass
 
+# preprocess miniscope
+class preprocess_miniscope():
+    def __init__(self, movie_path: str, downsample_factor: int):
+        tif_path = miniscope_to_tif(movie_path=movie_path)
+        downsample_tif(tif_path,downsample_factor=downsample_factor)
+
+# ------------- #
 def convert_to_tif(movie_path: str, image_idx = None, downsample_factor = None, save_path = None):
     '''
     Write a bunch of files in batch.
@@ -442,7 +449,7 @@ def stack_tiff(fnames: list, downsample_factor = None):
 ### Everything below are helper functions
 
 # downsample tif file
-def downsample_tif(movie_path: str):
+def downsample_tif(movie_path: str, downsample_factor: int):
     '''
     downsample_to_tif:
         This function is used to convert lionheart data to .tif files for analysis
@@ -458,51 +465,18 @@ def downsample_tif(movie_path: str):
     '''
 
     # load ffmpeg backend
-    vid = imageio.get_reader(movie_path,  'ffmpeg')
-    vid.get_meta_data()
-
-    # interface with user
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(10,5))
-    ax[0].imshow(vid.get_data(0)[::2,::2,0])
-    ax[0].set_title("Dimension 1")
-    ax[1].imshow(vid.get_data(0)[::2,::2,1])
-    ax[1].set_title("Dimension 2")
-    ax[2].imshow(vid.get_data(0)[::2,::2,2])
-    ax[2].set_title("Dimension 3")
-    plt.show()
-
-    # require user interface (-1 bc 0 indexing in python)
-    idx_movie = int(input("Enter which dimension [1/2/3] has your data:"))-1
-
-    # get downsample factor interactively
-    downsample_factor = interactive_downsample(image = vid.get_data(0)[:,:,idx_movie])
-
-    # run a while loop to extract data
-    images = []
-    next = 0; counter = 0
+    images = memmap(movie_path)
 
     # create new name for tif file
-    fname = movie_path.split('.tif')[0]+'_downsampled.tif'
+    fname = movie_path.split('.tif')[0]+'_downsampledx'+str(downsample_factor)+'.tif'
 
     # get pixel shape
-    if downsample_factor is None:
-        pixel_shape = vid.get_meta_data()['size']
-    else:
-        pixel_shape = vid.get_data(0)[::downsample_factor,::downsample_factor,idx_movie].shape
+    pixel_shape = images[0,::downsample_factor,::downsample_factor].shape
 
-    # get movie length
-    counter = 0; next = 0
-    while next == 0:
-        try:
-            vid.get_data(counter)
-            counter += 1
-        except:
-            next = 1
-    
     # create a memory mappable file
     im = memmap(
         fname,
-        shape=(counter,pixel_shape[0],pixel_shape[1]),
+        shape=(images.shape[0],pixel_shape[0],pixel_shape[1]),
         dtype=np.uint16,
         append=True
     )
@@ -510,17 +484,13 @@ def downsample_tif(movie_path: str):
     # now we will append to memory mapped file
     print("Please wait while data is mapped to:",fname)
     next = 0; counter = 0
-    while next == 0:
-        try:
-            if downsample_factor is None:
-                im[counter]=vid.get_data(counter)[:,:,idx_movie]
-            else:
-                im[counter]=vid.get_data(counter)[::downsample_factor,::downsample_factor,idx_movie]
-            im.flush()  
-            print("Finished with image",counter)                     
-            counter += 1
-        except:
-            next = 1
+    for i in images:
+        if downsample_factor is None:
+            im[counter]=i
+        else:
+            im[counter]=i[::downsample_factor,::downsample_factor]
+            print("Finished with image",str(counter+1),"/",str(images.shape[0]))
+            counter+=1
 
 # split 4D tif file
 def split_4D_tif(movie_path: str, structural_index = None, functional_index = None):
@@ -663,6 +633,8 @@ def miniscope_to_tif(movie_path: str):
         print(counter)
         im.flush()
         print("Finished with image",counter+1,"/",len(pathnames))  
+        
+    return fname
 
 # tif_to_memmap converts your tif files to memory mapped files
 def tif_to_memmap(movie_path: str):
@@ -763,7 +735,6 @@ def interactive_downsample(image):
         downsample_factor = int(downsample_factor)
              
     return downsample_factor
-
 
 # this should be used on datasets with multiple stages of processing
 class modify_movie():

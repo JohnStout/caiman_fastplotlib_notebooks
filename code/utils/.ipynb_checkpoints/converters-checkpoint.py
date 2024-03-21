@@ -326,13 +326,123 @@ def nwb_to_tif(nwbpath: str):
 
     return newpath
 
+# split tif stack
+def split_tif(movie_path: str, fr: float):
+    '''
+    split_tif is useful if your file is too large to load into memory
+
+    Args:
+        >>> movie_path: string of your movie directory
+        >>> fr: frame rate of your movie
+
+    John S.
+    
+    '''
+
+    # memorymap load a file
+    images = memmap(movie_path)
+
+    # shape of movie
+    num_movies = round(images.shape[0]/1000)
+
+    # create movie names
+    fnames = []; num_samples_remaining = images.shape[0]
+
+    if num_samples_remaining < 1000:
+        assert ValueError("This code requires at least 1000 samples in the time domaing to function")
+
+    for i in range(num_movies):
+
+        # get movie names
+        fnames.append(movie_path.split('.tif')[0]+'_split'+str(i+1)+'.tif')
+
+        # create a memory mappable file
+        if num_samples_remaining > 1000:
+            # write file to disk
+            imwrite(fnames[i],images[0:1000,:,:])
+            # remove 1000 frames
+            images = images[1000::]
+        elif num_samples_remaining < 1000 and num_samples_remaining > 0:
+            imwrite(fnames[i],images[0:num_samples_remaining,:,:])
+
+        # number of samples
+        num_samples_remaining = num_samples_remaining-1000
+
+    print("Files saved as:",fnames)
+    return fnames
+
+# stacktiff allows a user to stack a ton of tiff files into one singular file
+
+# TODO: FIXXXXX
+def stack_tiff(fnames: list, downsample_factor = None):
+    """
+    This function takes a folder with a bunch of .tif images and stacks them
+
+    TODO: THIS CODE MUST BE MODIFIED TO MEMORY MAP THE FILES! >>> See mp4_to_tif
+    Otherwise, this will be a monster memory bogger
+
+    Args:
+        dir: directory containing image data to stack
+        dir_save: OPTIONAL but recommended. Directory to save stacked data.
+        downsample_factor: OPTIONAL.
+            downsample_factor = 2 spatially reduces your dataset by a factor of 2
+    """
+    assert NameError("NOT READY FOR USAGE")
+
+    # read in one image to get shape
+    im = memmap(fnames[0])
+
+    # if the size the image is 3D, then just take a sample
+    if len(im.shape) > 2:
+        im = im[0]
+
+    # get downsample factor interactively
+    if downsample_factor is not None:
+        downsample_factor = interactive_downsample(im)
+        image_shape = im[::downsample_factor,::downsample_factor].shape
+    else:
+        image_shape = im.shape
+        downsample_factor = 0
+
+    # create new directory to save data
+    root_dir = os.path.split(fnames[0])[0]# select container folder
+    new_dir = os.path.join(root_dir,'stacked_series')
+    try:
+        os.mkdir(new_dir) # make directory
+        print("Created new directory:", new_dir)
+    except:
+        print("Existing directory:", new_dir)
+
+    # get new name
+    fname = os.path.join(new_dir,'stacked_series.tif')
+
+    # create a memory mappable file
+    im = memmap(
+        fname,
+        shape=(num_files,image_shape[0],image_shape[1]),
+        dtype=np.uint16,
+        append=True
+    )
+
+    # now we will append to memory mapped file
+    print("Please wait while data is mapped to:",fname)
+    counter = 0
+    for i in pathnames:
+        if downsample_factor is None:
+            im[counter] = imread(i)
+        else:
+            im[counter] = imread(i)[::downsample_factor,::downsample_factor]
+        im.flush()
+        print("Finished with image",counter+1,"/",len(pathnames))  
+        counter += 1
+
 
 #% ___________________ #%
 
 ### Everything below are helper functions
 
 # downsample tif file
-def downsample_tif(movie_path: str):
+def downsample_tif(movie_path: str, downsample_factor: int):
     '''
     downsample_to_tif:
         This function is used to convert lionheart data to .tif files for analysis
@@ -348,25 +458,8 @@ def downsample_tif(movie_path: str):
     '''
 
     # load ffmpeg backend
-    vid = imageio.get_reader(movie_path,  'ffmpeg')
-    vid.get_meta_data()
-
-    # interface with user
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(10,5))
-    ax[0].imshow(vid.get_data(0)[::2,::2,0])
-    ax[0].set_title("Dimension 1")
-    ax[1].imshow(vid.get_data(0)[::2,::2,1])
-    ax[1].set_title("Dimension 2")
-    ax[2].imshow(vid.get_data(0)[::2,::2,2])
-    ax[2].set_title("Dimension 3")
-    plt.show()
-
-    # require user interface (-1 bc 0 indexing in python)
-    idx_movie = int(input("Enter which dimension [1/2/3] has your data:"))-1
-
-    # get downsample factor interactively
-    downsample_factor = interactive_downsample(image = vid.get_data(0)[:,:,idx_movie])
-
+    images = memmap(movie_path)
+    
     # run a while loop to extract data
     images = []
     next = 0; counter = 0
@@ -375,24 +468,12 @@ def downsample_tif(movie_path: str):
     fname = movie_path.split('.tif')[0]+'_downsampled.tif'
 
     # get pixel shape
-    if downsample_factor is None:
-        pixel_shape = vid.get_meta_data()['size']
-    else:
-        pixel_shape = vid.get_data(0)[::downsample_factor,::downsample_factor,idx_movie].shape
+    pixel_shape = images[0,::downsample_factor,::downsample_factor].shape
 
-    # get movie length
-    counter = 0; next = 0
-    while next == 0:
-        try:
-            vid.get_data(counter)
-            counter += 1
-        except:
-            next = 1
-    
     # create a memory mappable file
     im = memmap(
         fname,
-        shape=(counter,pixel_shape[0],pixel_shape[1]),
+        shape=(images.shape[0],pixel_shape[0],pixel_shape[1]),
         dtype=np.uint16,
         append=True
     )
@@ -400,17 +481,13 @@ def downsample_tif(movie_path: str):
     # now we will append to memory mapped file
     print("Please wait while data is mapped to:",fname)
     next = 0; counter = 0
-    while next == 0:
-        try:
-            if downsample_factor is None:
-                im[counter]=vid.get_data(counter)[:,:,idx_movie]
-            else:
-                im[counter]=vid.get_data(counter)[::downsample_factor,::downsample_factor,idx_movie]
-            im.flush()  
-            print("Finished with image",counter)                     
-            counter += 1
-        except:
-            next = 1
+    for i in images:
+        if downsample_factor is None:
+            im[counter]=i
+        else:
+            im[counter]=i[::downsample_factor,::downsample_factor]
+            print("Finished with image",str(counter+1),"/",str(vid.shape[0]))
+            counter+=1
 
 # split 4D tif file
 def split_4D_tif(movie_path: str, structural_index = None, functional_index = None):
@@ -553,6 +630,8 @@ def miniscope_to_tif(movie_path: str):
         print(counter)
         im.flush()
         print("Finished with image",counter+1,"/",len(pathnames))  
+        
+    return fname
 
 # tif_to_memmap converts your tif files to memory mapped files
 def tif_to_memmap(movie_path: str):
@@ -654,74 +733,8 @@ def interactive_downsample(image):
              
     return downsample_factor
 
-# stacktiff allows a user to stack a ton of tiff files into one singular file
-def stacktiff(tiff_series_path: str, downsample_factor = None):
-    """
-    This function takes a folder with a bunch of .tif images and stacks them
 
-    TODO: THIS CODE MUST BE MODIFIED TO MEMORY MAP THE FILES! >>> See mp4_to_tif
-    Otherwise, this will be a monster memory bogger
-
-    Args:
-        dir: directory containing image data to stack
-        dir_save: OPTIONAL but recommended. Directory to save stacked data.
-        downsample_factor: OPTIONAL.
-            downsample_factor = 2 spatially reduces your dataset by a factor of 2
-    """
-
-    # extract all tif data in series
-    pathnames = glob.glob(tiff_series_path+'/*.tif')
-    pathnames.sort()
-    num_files = len(pathnames)
-
-    # read in one image to get shape
-    im = imread(pathnames[0])
-
-    # if the size the image is 3D, then just take a sample
-    if len(im.shape) > 2:
-        im = im[0]
-
-    # get downsample factor interactively
-    downsample_factor = interactive_downsample(im)
-    if downsample_factor is not None:
-        image_shape = im[::downsample_factor,::downsample_factor].shape
-    else:
-        image_shape = im.shape
-
-    # create new directory to save data
-    root_dir = os.path.split(os.path.split(pathnames[0])[0])[0] # select container folder
-    new_dir = os.path.join(root_dir,'stacked_series')
-    try:
-        os.mkdir(new_dir) # make directory
-        print("Created new directory:", new_dir)
-    except:
-        print("Existing directory:", new_dir)
-
-    # get new name
-    fname = os.path.join(new_dir,'stacked_series.tif')
-
-    # create a memory mappable file
-    im = memmap(
-        fname,
-        shape=(num_files,image_shape[0],image_shape[1]),
-        dtype=np.uint16,
-        append=True
-    )
-
-    # now we will append to memory mapped file
-    print("Please wait while data is mapped to:",fname)
-    counter = 0
-    for i in pathnames:
-        if downsample_factor is None:
-            im[counter] = imread(i)
-        else:
-            im[counter] = imread(i)[::downsample_factor,::downsample_factor]
-        im.flush()
-        print("Finished with image",counter+1,"/",len(pathnames))  
-        counter += 1
-
-# TODO: This object can be deprecated
-# downsample_movie provides a class to downsample your dataset
+# this should be used on datasets with multiple stages of processing
 class modify_movie():
 
     def __init__(self, movie_path):
@@ -889,5 +902,3 @@ class modify_movie():
         imsave(fname_funct,functMovie) 
 
         return [fname_funct], [fname_struct], structMovie, functMovie 
-
- 
