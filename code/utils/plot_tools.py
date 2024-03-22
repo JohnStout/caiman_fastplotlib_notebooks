@@ -38,6 +38,13 @@ class play_caiman_movie():
         Args:
             >>> images: 3D numpy array of your dataset
             >>> cnmf_object: cnmf object as a result of CNMF.fit
+
+        Returns:
+            >>> self.idx_accepted
+            >>> self.idx_rejected
+            >>> self.coors
+            >>> self.mask_array
+            >>> self.mask
         '''
         # define object attributes
         self.images = images
@@ -51,6 +58,17 @@ class play_caiman_movie():
         self.coors = get_contours(self.cnmf_object.estimates.A, (self.d1, self.d2), thr=0.99)
         self.idx_accepted = self.cnmf_object.estimates.idx_components # redundant line to backtrack on
         self.idx_rejected = self.cnmf_object.estimates.idx_components_bad
+
+        # get footprint matrices (a list)
+        component_footprint = [] # the actual cell 
+        component_contour = [] # the area around the cell
+        for i in self.idx_accepted:
+            component_contour.append(self.coors[i].get('coordinates')) # get the component
+            component_footprint.append(np.reshape(self.cnmf_object.estimates.A[:, i].toarray(), (self.d1,self.d2), order='F')) # reshape to footprint
+        
+        # create our mask
+        self.mask_array = np.array(component_footprint) # generate our mask_array
+        self.mask = np.max(self.mask_array,axis=0) # generate our mask          
 
     def __help__(self):
 
